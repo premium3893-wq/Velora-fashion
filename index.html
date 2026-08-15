@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VÉLORA — Fashion Store</title>
+<style>
+:root{--accent:#111;--bg:#faf9f7;--card:#fff;--muted:#777}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:#111}
+button,input,select{font:inherit}.top{background:#111;color:#fff;text-align:center;padding:8px;font-size:12px}
+header{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid #eee}
+.nav{max-width:1200px;margin:auto;padding:18px 20px;display:flex;align-items:center;gap:20px}
+.logo{font-size:24px;font-weight:800;letter-spacing:3px;margin-right:auto}
+.search{width:min(360px,40vw);border:1px solid #ddd;border-radius:30px;padding:11px 16px;outline:none}
+.cart{border:0;background:#111;color:#fff;border-radius:24px;padding:11px 16px;cursor:pointer}
+.hero{max-width:1200px;margin:20px auto;padding:70px 30px;border-radius:24px;background:linear-gradient(120deg,#eee,#d8d2ca);display:flex;align-items:center;min-height:320px}
+.hero h1{font-size:clamp(38px,6vw,72px);margin:0 0 12px}.hero p{color:#555}.wrap{max-width:1200px;margin:auto;padding:25px 20px}
+.cats{display:flex;gap:10px;overflow:auto;padding-bottom:18px}.cat{white-space:nowrap;border:1px solid #ddd;background:#fff;border-radius:22px;padding:10px 16px;cursor:pointer}.cat.active{background:#111;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}.product{background:var(--card);border-radius:16px;overflow:hidden;border:1px solid #eee}.pic{aspect-ratio:3/4;background:#eee;overflow:hidden}.pic img{width:100%;height:100%;object-fit:cover}.info{padding:14px}.name{font-weight:700}.muted{color:var(--muted);font-size:13px;margin:5px 0}.price{font-weight:800}.add{width:100%;margin-top:10px;padding:11px;border:0;border-radius:10px;background:#111;color:#fff;cursor:pointer}
+.empty{text-align:center;padding:60px;color:#777}.drawer{position:fixed;right:-430px;top:0;width:min(430px,100%);height:100%;background:#fff;z-index:20;box-shadow:-10px 0 30px #0002;transition:.25s;padding:20px;overflow:auto}.drawer.open{right:0}.overlay{position:fixed;inset:0;background:#0005;z-index:15;display:none}.overlay.show{display:block}.row{display:flex;gap:12px;align-items:center}.cartitem{display:flex;gap:12px;border-bottom:1px solid #eee;padding:14px 0}.cartitem img{width:65px;height:85px;object-fit:cover;border-radius:8px}.qty button{border:1px solid #ddd;background:#fff;width:28px;height:28px;border-radius:50%}.checkout{width:100%;padding:13px;background:#111;color:#fff;border:0;border-radius:10px;margin-top:15px;cursor:pointer}
+.modal{position:fixed;inset:0;background:#0006;z-index:30;display:none;align-items:center;justify-content:center;padding:20px}.modal.show{display:flex}.box{background:#fff;border-radius:18px;width:min(520px,100%);padding:22px;max-height:90vh;overflow:auto}.box input,.box textarea,.box select{width:100%;padding:11px;margin:7px 0 12px;border:1px solid #ddd;border-radius:9px}.close{float:right;border:0;background:none;font-size:24px;cursor:pointer}
+.status{display:flex;justify-content:space-between;margin:18px 0;font-size:12px}.step{flex:1;text-align:center;position:relative}.dot{width:24px;height:24px;border-radius:50%;background:#ddd;margin:auto auto 5px}.step.done .dot{background:#111}.track{margin-top:20px;border:1px solid #eee;border-radius:12px;padding:15px}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.search{width:45vw}.hero{margin:12px 12px}.nav{padding:14px 12px}}
+@media(max-width:480px){.grid{gap:10px}.info{padding:10px}.logo{font-size:19px}.search{display:none}}
+</style>
+</head>
+<body>
+<div class="top" id="announcement">Free shipping on selected orders • New collection live</div>
+<header><div class="nav"><div class="logo" id="logo">VÉLORA</div><input id="search" class="search" placeholder="Search fashion..."><button class="cart" onclick="openCart()">🛒 Cart <span id="count">0</span></button></div></header>
+
+<main>
+<section class="hero"><div><div class="muted">NEW SEASON</div><h1 id="heroTitle">Everyday, elevated.</h1><p id="heroText">Curated fashion essentials designed for your everyday style.</p><button class="cart" onclick="document.getElementById('products').scrollIntoView()">Shop collection</button></div></section>
+<div class="wrap"><div class="cats" id="cats"></div><div class="grid" id="products"></div></div>
+</main>
+
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<aside class="drawer" id="drawer"><button class="close" onclick="closeCart()">×</button><h2>Your Cart</h2><div id="cartList"></div><h3 id="total">Total: ₹0</h3><button class="checkout" onclick="checkout()">Proceed to checkout</button><hr><h3>Track an order</h3><input id="trackId" placeholder="Order ID"><button class="checkout" onclick="trackOrder()">Track order</button><div id="trackResult"></div></aside>
+
+<div class="modal" id="modal"><div class="box"><button class="close" onclick="closeModal()">×</button><h2>Checkout</h2><input id="name" placeholder="Full name"><input id="phone" placeholder="Phone number"><textarea id="address" rows="3" placeholder="Full delivery address"></textarea><input id="pincode" placeholder="PIN code"><select id="payment"><option value="cod">Cash on Delivery</option><option value="online">Online payment (connect gateway)</option></select><button class="checkout" onclick="placeOrder()">Place order</button><div id="orderMsg"></div></div></div>
+
+<script>
+const SUPABASE_URL="https://ggvanfhwascvoptxmzle.supabase.co", SUPABASE_ANON_KEY="sb_publishable_O3QmC27XiGOGuePSEaZD1A_x5BdIkqb";
+let products=[],cart=JSON.parse(localStorage.getItem("velora_cart")||"[]"),category="All";
+const demo=[
+{id:"d1",name:"Classic Oversized Tee",category:"Men",price:799,discount:0,image:"https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=700&q=80"},
+{id:"d2",name:"Minimal Linen Shirt",category:"Men",price:1299,discount:10,image:"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=700&q=80"},
+{id:"d3",name:"Elegant Summer Dress",category:"Women",price:1599,discount:15,image:"https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=700&q=80"},
+{id:"d4",name:"Everyday Handbag",category:"Accessories",price:999,discount:5,image:"https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=700&q=80"},
+{id:"d5",name:"Streetwear Hoodie",category:"Men",price:1499,discount:10,image:"https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=700&q=80"},
+{id:"d6",name:"Relaxed Co-ord Set",category:"Women",price:1399,discount:10,image:"https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80"},
+{id:"d7",name:"Classic Cap",category:"Accessories",price:499,discount:0,image:"https://images.unsplash.com/photo-1521369909029-2afed882baee?auto=format&fit=crop&w=700&q=80"},
+{id:"d8",name:"Premium Sneakers",category:"Footwear",price:1899,discount:10,image:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80"}];
+
+function save(){localStorage.setItem("velora_cart",JSON.stringify(cart));renderCart()}
+async function load(){
+ try{
+  if(!window.supabase||SUPABASE_URL.startsWith("YOUR_")) throw 0;
+  const {data}=await window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY).from("products").select("*").eq("active",true).order("created_at",{ascending:false});
+  products=data?.length?data:demo;
+ }catch(e){products=demo}
+ renderCats();renderProducts();renderCart()
+}
+function renderCats(){let cs=["All",...new Set(products.map(p=>p.category).filter(Boolean))];cats.innerHTML=cs.map(c=>`<button class="cat ${c==category?'active':''}" onclick="category='${c}';renderCats();renderProducts()">${c}</button>`).join("")}
+function renderProducts(){let q=search.value.toLowerCase();let list=products.filter(p=>(category=="All"||p.category==category)&&(!q||p.name.toLowerCase().includes(q)));productsEl.innerHTML=list.map(p=>{let price=p.discount?p.price*(1-p.discount/100):p.price;return `<article class="product"><div class="pic"><img src="${p.image||''}" alt="${p.name}"></div><div class="info"><div class="name">${p.name}</div><div class="muted">${p.category||''}</div><div class="price">₹${Math.round(price)} ${p.discount?`<s class="muted">₹${p.price}</s>`:""}</div><button class="add" onclick='add("${p.id}")'>Add to cart</button></div></article>`}).join("")||'<div class="empty">No products found.</div>'}
+function add(id){let p=products.find(x=>x.id==id),x=cart.find(x=>x.id==id);x?x.qty++:cart.push({id:p.id,name:p.name,price:Math.round(p.discount?p.price*(1-p.discount/100):p.price),image:p.image,qty:1});save();openCart()}
+function renderCart(){count.textContent=cart.reduce((a,x)=>a+x.qty,0);cartList.innerHTML=cart.length?cart.map(x=>`<div class="cartitem"><img src="${x.image}"><div style="flex:1"><b>${x.name}</b><div>₹${x.price}</div><div class="qty"><button onclick="change('${x.id}',-1)">−</button> ${x.qty} <button onclick="change('${x.id}',1)">+</button></div></div></div>`).join(""):"<div class='empty'>Your cart is empty.</div>";total.textContent="Total: ₹"+cart.reduce((a,x)=>a+x.price*x.qty,0)}
+function change(id,n){let x=cart.find(x=>x.id==id);x.qty+=n;if(x.qty<=0)cart=cart.filter(x=>x.id!=id);save()}
+function openCart(){drawer.classList.add("open");overlay.classList.add("show")}function closeCart(){drawer.classList.remove("open");overlay.classList.remove("show")}
+function checkout(){if(!cart.length)return alert("Your cart is empty");modal.classList.add("show")}
+function closeModal(){modal.classList.remove("show")}
+async function placeOrder(){
+ let namev=name.value.trim(),phonev=phone.value.trim(),addr=address.value.trim(),pin=pincode.value.trim();if(!namev||!phonev||!addr||!pin)return alert("Please fill all details.");
+ let id="VLR-"+Date.now().toString().slice(-8),totalv=cart.reduce((a,x)=>a+x.price*x.qty,0);
+ try{
+  if(window.supabase&&!SUPABASE_URL.startsWith("YOUR_")){
+   const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+   await sb.from("orders").insert({order_code:id,customer_name:namev,phone:phonev,address:addr,pincode:pin,payment_method:payment.value,total:totalv,status:"placed",items:cart});
+  }
+ }catch(e){}
+ localStorage.setItem("last_order",JSON.stringify({id,total:totalv,status:"placed"}));cart=[];save();orderMsg.innerHTML=`<div class="track"><b>Order placed!</b><p>Your order ID is <strong>${id}</strong>.</p><p>Save this ID to track your order.</p></div>`;trackId.value=id;closeCart();renderCart()
+}
+async function trackOrder(){
+ let id=trackId.value.trim();if(!id)return;
+ let data=null;try{if(window.supabase&&!SUPABASE_URL.startsWith("YOUR_")){let sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);let r=await sb.from("orders").select("order_code,status,customer_name,total").eq("order_code",id).maybeSingle();data=r.data}}catch(e){}
+ if(!data){let x=JSON.parse(localStorage.getItem("last_order")||"null");if(x&&x.id==id)data={order_code:x.id,status:x.status,total:x.total}}
+ trackResult.innerHTML=data?timeline(data):"<div class='track'>Order not found.</div>"
+}
+function timeline(o){let states=["placed","confirmed","packed","shipped","out_for_delivery","delivered"],labels=["Placed","Confirmed","Packed","Shipped","Out for delivery","Delivered"],i=states.indexOf(o.status);if(o.status=="cancelled")return `<div class="track"><b>Order ${o.order_code}</b><p>Cancelled</p></div>`;return `<div class="track"><b>Order ${o.order_code}</b><div class="status">${labels.map((x,k)=>`<div class="step ${k<=i?'done':''}"><div class="dot"></div>${x}</div>`).join("")}</div><b>Total: ₹${o.total}</b></div>`}
+search.addEventListener("input",renderProducts);const productsEl=document.getElementById("products");load();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</body></html>
