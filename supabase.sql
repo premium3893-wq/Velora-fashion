@@ -1,0 +1,18 @@
+create extension if not exists pgcrypto;
+create table if not exists products(id uuid primary key default gen_random_uuid(),name text not null,category text,price numeric not null default 0,discount numeric default 0,image text,images jsonb default '[]',sizes jsonb default '[]',colors jsonb default '[]',stock integer default 0,active boolean default true,created_at timestamptz default now());
+create table if not exists orders(id uuid primary key default gen_random_uuid(),order_code text unique not null,customer_name text not null,phone text not null,address text not null,pincode text not null,payment_method text default 'cod',total numeric not null default 0,items jsonb default '[]',status text default 'placed',created_at timestamptz default now());
+create table if not exists site_settings(id integer primary key,logo text default 'VÉLORA',hero_title text default 'Everyday, elevated.',hero_text text default 'Curated fashion essentials for everyday style.',announcement text default 'Free shipping on selected orders',accent text default '#111');
+insert into site_settings(id) values(1) on conflict(id) do nothing;
+alter table products enable row level security;alter table orders enable row level security;alter table site_settings enable row level security;
+create policy "read active products" on products for select using(active=true);
+create policy "admin products" on products for all to authenticated using(true) with check(true);
+create policy "create orders" on orders for insert with check(true);
+create policy "track orders" on orders for select using(true);
+create policy "admin orders" on orders for all to authenticated using(true) with check(true);
+create policy "read settings" on site_settings for select using(true);
+create policy "admin settings" on site_settings for all to authenticated using(true) with check(true);
+insert into storage.buckets(id,name,public) values('product-images','product-images',true) on conflict(id) do nothing;
+create policy "read product images" on storage.objects for select using(bucket_id='product-images');
+create policy "upload product images" on storage.objects for insert to authenticated with check(bucket_id='product-images');
+create policy "update product images" on storage.objects for update to authenticated using(bucket_id='product-images') with check(bucket_id='product-images');
+create policy "delete product images" on storage.objects for delete to authenticated using(bucket_id='product-images');
