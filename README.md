@@ -1,1 +1,0 @@
-Run supabase.sql, create an Auth user, then deploy index.html and admin.html. The Supabase URL and publishable key are already configured. Never use a service-role key in frontend code.
